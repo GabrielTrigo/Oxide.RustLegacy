@@ -3,6 +3,7 @@ using Oxide.Core.Libraries.Covalence;
 using System;
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 
 namespace Oxide.Game.RustLegacy.Libraries.Covalence
 {
@@ -29,6 +30,7 @@ namespace Oxide.Game.RustLegacy.Libraries.Covalence
         }
 
         private static IPAddress address;
+        private static IPAddress localAddress;
 
         /// <summary>
         /// Gets the public-facing IP address of the server, if known
@@ -100,6 +102,38 @@ namespace Oxide.Game.RustLegacy.Libraries.Covalence
         /// Gets information on the currently loaded save file
         /// </summary>
         public SaveInfo SaveInfo => SaveFile;
+
+        /// <summary>
+        /// Gets the local/bind IP address of the server (IPv4), if known
+        /// </summary>
+        public IPAddress LocalAddress
+        {
+            get
+            {
+                try
+                {
+                    if (localAddress != null) return localAddress;
+
+                    var host = Dns.GetHostEntry(Dns.GetHostName());
+                    foreach (var ip in host.AddressList)
+                    {
+                        if (ip.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip))
+                        {
+                            localAddress = ip;
+                            return localAddress;
+                        }
+                    }
+
+                    // Fallback to unspecified (0.0.0.0) when no suitable address found
+                    return new IPAddress(0);
+                }
+                catch (Exception ex)
+                {
+                    RemoteLogger.Exception("Couldn't get local server IP address", ex);
+                    return new IPAddress(0);
+                }
+            }
+        }
 
         #endregion Information
 
